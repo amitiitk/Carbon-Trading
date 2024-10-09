@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract CarbonCreditSystem {
+    address public issuer;   
+    address public verifier; 
+
+    mapping(address => uint256) private _balances;
+
+    event CreditsIssued(address indexed to, uint256 amount);
+    event CreditsVerified(address indexed to, uint256 emissionReduction);
+    event CreditsTraded(address indexed from, address indexed to, uint256 amount);
+    event CreditsRetired(address indexed from, uint256 amount);
+
+    constructor() {
+        issuer = msg.sender;   
+        verifier = msg.sender; 
+    }
+
+    modifier onlyIssuer() {
+        require(msg.sender == issuer, "Only the issuer can perform this action");
+        _;
+    }
+
+    modifier onlyVerifier() {
+        require(msg.sender == verifier, "Only the verifier can perform this action");
+        _;
+    }
+
+    function setVerifier(address _verifier) external onlyVerifier {
+        verifier = _verifier;
+    }
+
+    function issueCredits(address to, uint256 amount) external onlyIssuer {
+        _balances[to] += amount;  // Add the specified amount to the recipient's balance
+        emit CreditsIssued(to, amount);
+    }
+
+    function verifyAndIssue(address to, uint256 emissionReduction) external onlyVerifier {
+        _balances[to] += emissionReduction;  // Add the specified amount after verification
+        emit CreditsVerified(to, emissionReduction);
+    }
+
+    function tradeCredits(address from, address to, uint256 amount) external {
+        require(_balances[from] >= amount, "Insufficient balance to trade");
+        _balances[from] -= amount;  // Deduct from sender's balance
+        _balances[to] += amount;    // Add to recipient's balance
+        emit CreditsTraded(from, to, amount);
+    }
+
+    function retireCredits(uint256 amount) external {
+        require(_balances[msg.sender] >= amount, "Insufficient balance to retire");
+        _balances[msg.sender] -= amount;  // Burn tokens from the caller's balance
+        emit CreditsRetired(msg.sender, amount);
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return _balances[account];
+    }
+}
